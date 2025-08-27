@@ -1,0 +1,44 @@
+.title{
+  text-align: center;
+  margin: 10px 0 10px 0;
+}
+.operate{
+  margin: 0 90px;
+
+  .search-container {
+    margin-bottom: 10px;
+  }
+
+  .filter-container {
+    .filter-header{
+      margin-bottom: 5px;
+    }
+
+    .filter-condition {
+      margin-bottom: 5px;
+
+      .delete-icon{
+        cursor: pointer;
+        &:hover {
+          color: red;
+        }
+      }
+    }
+  }
+}
+.table-container{
+  width: 1500px;
+  margin: 10px auto;
+  padding: 10px;
+}
+.pagination-container{
+  margin: 0 0 0 90px;
+}
+
+.form .el-input {
+  --el-input-width: 220px;
+}
+
+.form .el-select {
+  --el-select-width: 220px;
+}

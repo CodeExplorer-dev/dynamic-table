@@ -16,45 +16,31 @@
   </div>
 
   <div class="filter-container">
-    <div class="filter-header">
-      <el-button @click="addFilterCondition" type="primary">
-        <el-icon><Plus /></el-icon>
-        添加条件
-      </el-button>
-      <el-button @click="handleFilter" type="success">应用筛选</el-button>
-      <el-button @click="handleReset">重置</el-button>
-    </div>
-    
-    <div v-for="(condition, index) in filterConditions" :key="index" class="filter-condition">
-      <el-form :inline="true" class="form">
-        <el-select
-          v-model="condition.field"
-          placeholder="选择筛选字段"
-          style="width: 130px; margin-right: 10px"
-        >
-          <el-option v-for="option in filterOptions" :key="option.value" :label="option.label" :value="option.value" />
-        </el-select>
-        <el-select
-          v-model="condition.operator"
-          placeholder="选择条件"
-          style="width: 70px; margin-right: 10px"
-        >
-          <el-option label=">" value=">" />
-          <el-option label=">=" value=">=" />
-          <el-option label="==" value="==" />
-          <el-option label="<" value="<" />
-          <el-option label="<=" value="<=" />
-          <el-option label="!=" value="!=" />
-        </el-select>
-        <el-input v-model="condition.refer" placeholder="输入数值" style="width: 130px; margin-right: 10px"></el-input>
-        <el-icon
-          v-if="filterConditions.length !== 1" 
-          @click="removeFilterCondition(index)"
-        >
-          <Delete class="delete-icon"/>
-        </el-icon>
-      </el-form>
-    </div>
+    <el-form
+      :inline="true"
+      class="form"
+    >
+      <el-select
+        v-model="filterContent.field"
+        placeholder="选择筛选字段"
+        style="width: 130px; margin-right: 10px"
+      >
+        <el-option v-for="option in filterOptions" :key="option.value" :label="option.label" :value="option.value" />
+      </el-select>
+      <el-select
+        v-model="filterContent.operator"
+        placeholder="选择条件"
+        style="width: 70px; margin-right: 10px"
+      >
+        <el-option label=">" value=">" />
+        <el-option label=">=" value=">=" />
+        <el-option label="==" value="==" />
+        <el-option label="<" value="<" />
+        <el-option label="<=" value="<=" />
+        <el-option label="!=" value="!=" />
+      </el-select>
+      <el-input v-model="filterContent.refer" placeholder="输入数值" style="width: 130px; margin-right: 10px"></el-input>
+    </el-form>
   </div>
 </div>
 <div class="table-container">
@@ -86,7 +72,6 @@
 import { ElMessage } from 'element-plus';
 import { ref, onMounted, computed, reactive } from 'vue';
 import { read, utils } from 'xlsx';
-import { Delete, Plus } from '@element-plus/icons-vue';
  
 const tableData = ref([]) // 表格数据
 const originalData = ref([]) // 原始数据
@@ -95,12 +80,12 @@ const currentPage = ref(1) // 当前页码
 const pageSize = ref(10) // 每页显示条数
 const searchValue = ref('') 
 const filterOptions = ref([])
-
-const filterConditions = ref([{
+const filterContent = reactive({
   field: '',
   operator: '>',
   refer: ''
-}])
+})
+
 
 // 计算当前页的数据
 const paginatedData = computed(() => {
@@ -111,12 +96,14 @@ const paginatedData = computed(() => {
  
 // 切换每页显示数量
 const handleSizeChange = (newSize) => {
+  console.log(newSize)
   pageSize.value = newSize
   currentPage.value = 1 // 回到第一页
 };
  
 // 翻页
 const handleCurrentChange = (newPage) => {
+  console.log(newPage)
   currentPage.value = newPage;
 };
 
@@ -134,88 +121,64 @@ const handleSearchByID = () => {
   currentPage.value = 1
 }
 
-// 添加筛选条件
-const addFilterCondition = () => {
-  filterConditions.value.push({
-    field: '',
-    operator: '>',
-    refer: ''
-  })
-}
-
-const removeFilterCondition = (index) => {
-  console.log(index)
-  if (filterConditions.value.length > 1) {
-    filterConditions.value.splice(index, 1)
-  }
-}
-
 const handleFilter = () => {
-  const validConditions = filterConditions.value.filter(
-    condition => condition.field && condition.operator && condition.refer !== ''
-  )
-  console.log(validConditions)
-  
-  // 无筛选条件
-  if (validConditions.length === 0) {
-    filteredData.value = [...tableData.value]
-    currentPage.value = 1
-    ElMessage.warning('请选择有效的筛选条件');
+  const field = filterContent.field
+  const operator = filterContent.operator
+  const refer = filterContent.refer
+
+  console.log('字段:', field)
+  console.log('条件:', operator)
+  console.log('数值:', refer)
+
+  if (!field || !operator || refer === '') {
+    ElMessage.warning('请填写完整的筛选条件');
     return;
   }
-  
-  filteredData.value = tableData.value.filter(item => 
-    validConditions.every(condition => evaluateCondition(item, condition))
-  )
-  currentPage.value = 1
-}
 
-const evaluateCondition = (item, condition) => {
-  const { field, operator, refer } = condition
-  const value = item[field]
-  
-  // 如果字段值为undefined或null，不满足条件
-  if (value === undefined || value === null) {
-    return false
-  }
-  
   switch (operator) {
     case '>':
-      return Number(value) > Number(refer)
+      filteredData.value = [...filteredData.value].filter(item => item[field] > refer)
+      break
     case '>=':
-      return Number(value) >= Number(refer)
+      filteredData.value = [...filteredData.value].filter(item => item[field] >= refer)
+      break
     case '==':
-      return value == refer
+      filteredData.value = [...filteredData.value].filter(item => item[field] == refer)
+      break
     case '<':
-      return Number(value) < Number(refer)
+      filteredData.value = [...filteredData.value].filter(item => item[field] < refer)
+      break
     case '<=':
-      return Number(value) <= Number(refer)
+      filteredData.value = [...filteredData.value].filter(item => item[field] <= refer)
+      break
     case '!=':
-      return value != refer
+      filteredData.value = [...filteredData.value].filter(item => item[field] != refer)
+      break
     default:
-      return false
+      ElMessage.warning('请选择正确的条件')
   }
 }
 
 const handleReset = () => {
   filteredData.value = [...tableData.value]
   currentPage.value = 1
-  filterConditions.value = [{
-    field: '',
-    operator: '>',
-    refer: ''
-  }]
+  filterContent.field = ''
+  filterContent.operator = '>'
+  filterContent.refer = ''
 }
+
 
 const getTableData = async (file) => {
   try {
     const data = await file.arrayBuffer()
     const workbook = read(data)
+    console.log(workbook)
     const sheet1 = workbook.Sheets[workbook.SheetNames[0]]
     originalData.value = utils.sheet_to_json(sheet1)
     tableData.value = utils.sheet_to_json(sheet1)
     filteredData.value = utils.sheet_to_json(sheet1)
     filterOptions.value = Object.keys(tableData.value[0]).map(key => ({ label: key, value: key })).filter(option => option.value !== 'ID')
+    console.log(filterOptions.value);
     
     currentPage.value = 1
   } catch (error) {
@@ -228,15 +191,15 @@ const loadDefaultFile = async () => {
   try {
     // 获取Excel文件，并转换为File对象
     const response = await fetch('/front-end-dynamic-table.xlsx')
-    // console.log(response)
+    console.log(response)
     if (response.status !== 200) throw new Error("File not found")
     ElMessage.success('加载默认文件成功')
     const blob = await response.blob() // 将响应转换为Blob对象（二进制大对象）
-    // console.log(blob)
+    console.log(blob)
     const file = new File([blob], 'front-end-dynamic-table.xlsx', { 
       type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
     })
-    // console.log(file)
+    console.log(file)
     await getTableData(file)
   } catch (error) {
     console.warn("Failed to load default file:", error.message)
@@ -246,6 +209,9 @@ const loadDefaultFile = async () => {
 }
 
 const handleSort = ({ prop, order }) => {
+  console.log('排序字段:', prop)
+  console.log('排序顺序:', order)
+
   if (!prop || !order) {
     filteredData.value = [...originalData.value]
     return
@@ -266,7 +232,3 @@ onMounted(() => {
   loadDefaultFile()
 })
 </script>
-
-<style scoped>
-@import '../assets/style.css'
-</style>
